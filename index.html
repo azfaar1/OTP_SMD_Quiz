@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Firebase OTP Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background: #f2f4f8; display: flex; justify-content: center; padding-top: 60px; }
+    .card { background: #fff; padding: 28px; border-radius: 12px; width: 340px; box-shadow: 0 4px 16px rgba(0,0,0,.1); }
+    h2 { margin-top: 0; }
+    input, button { width: 100%; padding: 10px; margin-top: 10px; font-size: 16px; box-sizing: border-box; }
+    button { background: #ff9800; color: #fff; border: 0; border-radius: 6px; cursor: pointer; }
+    button:disabled { opacity: .5; }
+    #msg { margin-top: 12px; font-size: 14px; min-height: 18px; }
+    .err { color: #c62828; } .ok { color: #2e7d32; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Firebase OTP Demo</h2>
+
+    <div id="phoneStep">
+      <label>Phone number (with country code)</label>
+      <input id="phone" type="tel" placeholder="+923001234567" />
+      <div id="recaptcha-container"></div>
+      <button id="sendBtn">Send OTP</button>
+    </div>
+
+    <div id="otpStep" class="hidden">
+      <label>Enter the 6-digit code</label>
+      <input id="otp" type="text" inputmode="numeric" maxlength="6" placeholder="123456" />
+      <button id="verifyBtn">Verify OTP</button>
+    </div>
+
+    <div id="doneStep" class="hidden">
+      <p class="ok"><b>Login successful!</b></p>
+      <p>Phone: <span id="userPhone"></span></p>
+      <p>UID: <small id="userUid"></small></p>
+      <button id="logoutBtn">Sign out</button>
+    </div>
+
+    <div id="msg"></div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+    import {
+      getAuth, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged
+    } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+    // TODO: paste your Firebase web app config here (Project settings > General > Your apps)
+    const firebaseConfig = {
+      apiKey: "AIzaSyB5SGTbXaDXPxT3FT868fEQH6enmEyrPI0",
+      authDomain: "otp-class-task.firebaseapp.com",
+      projectId: "otp-class-task",
+      storageBucket: "otp-class-task.firebasestorage.app",
+      messagingSenderId: "41150969285",
+      appId: "1:41150969285:web:7e8ea2161e2d0e8f8fc7ac"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    const $ = (id) => document.getElementById(id);
+    const show = (step) => {
+      for (const s of ["phoneStep", "otpStep", "doneStep"]) $(s).classList.toggle("hidden", s !== step);
+    };
+    const say = (text, cls = "") => { $("msg").textContent = text; $("msg").className = cls; };
+
+    let confirmation = null;
+    const recaptcha = new RecaptchaVerifier(auth, "recaptcha-container", { size: "normal" });
+
+    $("sendBtn").onclick = async () => {
+      const phone = $("phone").value.trim();
+      if (!phone.startsWith("+")) return say("Include the country code, e.g. +92...", "err");
+      $("sendBtn").disabled = true;
+      try {
+        confirmation = await signInWithPhoneNumber(auth, phone, recaptcha);
+        show("otpStep");
+        say("OTP sent. Check your phone.", "ok");
+      } catch (e) {
+        say(e.code || e.message, "err");
+        recaptcha.render().then((id) => window.grecaptcha.reset(id));
+      }
+      $("sendBtn").disabled = false;
+    };
+
+    $("verifyBtn").onclick = async () => {
+      try {
+        await confirmation.confirm($("otp").value.trim());
+        say("");
+      } catch (e) {
+        say(e.code === "auth/invalid-verification-code" ? "Wrong code, try again." : (e.code || e.message), "err");
+      }
+    };
+
+    $("logoutBtn").onclick = () => signOut(auth);
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        $("userPhone").textContent = user.phoneNumber;
+        $("userUid").textContent = user.uid;
+        show("doneStep");
+      } else {
+        show("phoneStep");
+      }
+    });
+  </script>
+</body>
+</html>
