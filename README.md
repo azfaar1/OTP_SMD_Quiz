@@ -1,24 +1,33 @@
-# Firebase OTP Demo (web)
+# Firebase OTP Demo (React Native / Expo)
 
-Single-file demo: enter phone number -> receive SMS OTP -> verify -> logged in.
+Expo app: enter phone number -> solve reCAPTCHA -> receive SMS OTP -> verify -> logged in.
+Works on Android, iOS (Expo Go) and in the browser (Expo web). It was converted from the original single-file web demo and the login flow is unchanged.
 
-## Setup
-1. https://console.firebase.google.com -> create a project.
+## Firebase setup
+1. https://console.firebase.google.com -> use the project `otp-class-task` (config is in `firebase.js`).
 2. Build > Authentication > Get started > Sign-in method > enable **Phone**.
-3. (Recommended) Authentication > Sign-in method > Phone > "Phone numbers for testing": add e.g. `+16505550101` with code `123456` (no real SMS, no billing needed).
-4. Project settings > General > Your apps > add a **Web app** (`</>`) and copy the `firebaseConfig` into `index.html`.
-5. Authentication > Settings > Authorized domains: `localhost` is there by default.
+3. (Recommended) Authentication > Sign-in method > Phone > "Phone numbers for testing": add `+16505550101` with code `123456` (no real SMS, no billing needed).
+4. Authentication > Settings > Authorized domains: `localhost` is there by default. For phones, also make sure the project's `authDomain` (`otp-class-task.firebaseapp.com`) is listed.
 
 ## Run
 ```
-npx serve .
+npm install
+npx expo start
 ```
-Open http://localhost:3000 (must be served over http://localhost, not by double-clicking the file).
+- Press `w` to open it in the browser (http://localhost:8081). Use `localhost`.
+- Or scan the QR code with the **Expo Go** app on a phone (same Wi-Fi).
+- Press `a` for an Android emulator.
 
+Then enter `+16505550101`, complete the reCAPTCHA, and use code `123456`.
 
-## For Laptop : 
-1. Unzip the folder.
-2. Install Node.js from nodejs.org if it isn't installed. Python also works: python -m http.server 3000.
-3. In the folder, run npx serve . -l 3000.
-4. Open http://localhost:3000. Use localhost, not 127.0.0.1, and don't double-click the file.
-5. Enter +16505550101 and code 123456.
+## Project structure
+| File | Purpose |
+|------|---------|
+| `App.js` | Screens and OTP logic (phone -> code -> logged in) |
+| `firebase.js` | Firebase config and auth setup (persists the session on phones) |
+| `theme.js` | Colours and text; edit this to restyle the app |
+| `Screenshots/` | Screenshots and recording of the original web version of the flow |
+
+## Notes
+- A Firebase test number never sends an SMS; Firebase compares your input to the fixed code set in the console.
+- Phone auth on mobile uses `expo-firebase-recaptcha` (a WebView reCAPTCHA), which works in Expo Go but is deprecated; for a production build consider `@react-native-firebase/auth`.
